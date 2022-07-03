@@ -1,0 +1,18 @@
+[tool.poetry]
+name = "object-ai"
+version = "0.1.0"
+description = ""
+authors = ["Kevin Fortier <kevin.r.fortier@gmail.com>"]
+
+[tool.poetry.dependencies]
+python = ">=3.7, <4"
+Flask = "^2.1.2"
+python-dotenv = "^0.20.0"
+torch = "^1.12.0"
+torchvision = "^0.13.0"
+pycocotools = "^2.0.4"
+awscli = "^1.25.22"
+labelbox = "^3.23.3"
+
+[tool.poetry.dev-dependencies]
+pytest = "^3.4"

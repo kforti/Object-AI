@@ -6,13 +6,14 @@ import torch
 
 from object_ai.utils.engine import train_one_epoch, evaluate
 from object_ai.utils import utils
-from object_ai.dataset import PennFudanDataset
+from object_ai.dataset import PennFudanDataset, ObjectDetectionDataset
 from object_ai.transforms import get_transform
 from object_ai.models import get_model_instance_segmentation
 from object_ai.trainers import Trainer
+from object_ai.repos import LocalImagesRepo, CocoLabelsRepo
 
 
-DATASET_PATH = Path(__file__).parent.parent.joinpath('data')
+DATA_PATH = Path(__file__).parent.parent.joinpath('data')
 
 
 class TrainConfig:
@@ -34,8 +35,19 @@ class TrainConfig:
 def train(config):
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
     # use our dataset and defined transformations
-    dataset = PennFudanDataset(DATASET_PATH.joinpath('PennFudanPed'), get_transform(train=True))
-    dataset_test = PennFudanDataset(DATASET_PATH.joinpath('PennFudanPed'), get_transform(train=False))
+    dataset_path = DATA_PATH.joinpath('PennFudanPed')
+    images_repo = LocalImagesRepo(base_path=dataset_path.joinpath('PNGImages'))
+    masks_repo = LocalImagesRepo(base_path=dataset_path.joinpath('PedMasks'))
+    labels_repo = CocoLabelsRepo()
+
+    dataset = ObjectDetectionDataset(images_repo=images_repo,
+                                     masks_repo=masks_repo,
+                                     labels_repo=labels_repo,
+                                     transforms=get_transform(train=True))
+    dataset_test = ObjectDetectionDataset(images_repo=images_repo,
+                                     masks_repo=masks_repo,
+                                     labels_repo=labels_repo,
+                                     transforms=get_transform(train=False))
 
     # split the dataset in train and test set
     indices = torch.randperm(len(dataset)).tolist()

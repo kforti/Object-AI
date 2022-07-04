@@ -13,6 +13,8 @@ torchvision = "^0.13.0"
 pycocotools = "^2.0.4"
 awscli = "^1.25.22"
 labelbox = "^3.23.3"
+prefect = ">=2.0b"
+greenlet = "^1.1.2"
 
 [tool.poetry.dev-dependencies]
 pytest = "^3.4"

@@ -73,7 +73,11 @@ class PennFudanDataset(torch.utils.data.Dataset):
 
 
 class ObjectDetectionDataset:
-    def __init__(self, images_repo, masks_repo, labels_repo, transforms):
+    def __init__(self,
+                 images_repo,
+                 masks_repo,
+                 labels_repo,
+                 transforms):
         self.images_repo = images_repo
         self.masks_repo = masks_repo
         self.labels_repo = labels_repo

@@ -1,7 +1,7 @@
 import os
 from pathlib import Path
 
-from object_ai.orchestration.run import run_train
+from object_ai.orchestration.training import run_train
 
 
 def main():

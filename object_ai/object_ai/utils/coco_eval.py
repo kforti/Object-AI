@@ -51,9 +51,18 @@ class CocoEvaluator:
             coco_eval.accumulate()
 
     def summarize(self):
+        total_precision = 0
         for iou_type, coco_eval in self.coco_eval.items():
             print(f"IoU metric: {iou_type}")
             coco_eval.summarize()
+            total_precision += coco_eval.stats[0]
+        mean_precision = total_precision / len(self.coco_eval.items())
+        return mean_precision
+
+    def get_evaluation_metrics(self):
+        total_precision = sum([coco_eval.stats[0] for iou_type, coco_eval in self.coco_eval.items()])
+        mean_precision = total_precision / len(self.coco_eval.items())
+        return mean_precision
 
     def prepare(self, predictions, iou_type):
         if iou_type == "bbox":

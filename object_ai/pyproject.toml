@@ -15,6 +15,7 @@ awscli = "^1.25.22"
 labelbox = "^3.23.3"
 prefect = ">=2.0b"
 greenlet = "^1.1.2"
+boto3 = "^1.24.23"
 
 [tool.poetry.dev-dependencies]
 pytest = "^3.4"

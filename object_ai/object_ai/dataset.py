@@ -3,6 +3,8 @@ import numpy as np
 import torch
 from PIL import Image
 
+from object_ai.repos import ImagesRepo, LabelsRepo
+
 
 class PennFudanDataset(torch.utils.data.Dataset):
     def __init__(self, root, transforms):
@@ -73,23 +75,16 @@ class PennFudanDataset(torch.utils.data.Dataset):
 
 
 class ObjectDetectionDataset:
-    def __init__(self,
-                 images_repo,
-                 masks_repo,
-                 labels_repo,
-                 transforms):
+    def __init__(self, images_repo: ImagesRepo, labels_repo: LabelsRepo, transforms):
         self.images_repo = images_repo
-        self.masks_repo = masks_repo
         self.labels_repo = labels_repo
         self.transforms = transforms
 
         self.images = []
-        self.masks = []
         self.refresh()
 
     def refresh(self):
         self.images = self.images_repo.list_image_names()
-        self.masks = self.masks_repo.list_image_names()
 
     def __len__(self):
         return len(self.images)
@@ -97,14 +92,12 @@ class ObjectDetectionDataset:
     def __getitem__(self, idx):
         image_name = self.images[idx]
         image = self.images_repo.get_image(image_name)
-        image = image.convert("RGB")
 
         # note that we haven't converted the mask to RGB,
         # because each color corresponds to a different instance
         # with 0 being background
-        mask_name = self.masks[idx]
-        mask = self.masks_repo.get_image(mask_name)
-        label = self.labels_repo.get_label_from_mask(mask, idx)
+        label_name = image_name.replace(".png", "")
+        label = self.labels_repo.get_label(label_name, idx)
         if self.transforms is not None:
             image, label = self.transforms(image, label)
 

@@ -8,8 +8,9 @@ import torch
 
 from object_ai.utils.engine import train_one_epoch, evaluate
 
+
 def get_current_timestamp():
-    timestamp = str(datetime.utcnow().replace(microsecond=0)).replace(' ', '_')
+    timestamp = str(datetime.utcnow().replace(microsecond=0)).replace(" ", "_")
     return timestamp
 
 
@@ -22,56 +23,67 @@ class LocalModelStore:
         if not base_path.exists():
             base_path.mkdir(parents=True)
         model_path = base_path.joinpath(model_name)
-        meta_path = base_path.joinpath('meta.json')
+        meta_path = base_path.joinpath("meta.json")
 
         # save model
         best_model_wts = copy.deepcopy(model.state_dict())
         torch.save(best_model_wts, model_path)
 
         # save meta data
-        with open(meta_path, 'w') as f:
+        with open(meta_path, "w") as f:
             json.dump(meta_data, f)
 
         return None
 
 
 class Trainer:
-
     def __init__(self, lr_scheduler, model_store):
         self.lr_scheduler = lr_scheduler
         self.model_store = model_store
 
-    def train(self,
-              model,
-              model_name,
-              optimizer,
-              data_loader,
-              eval_data_loader,
-              device,
-              num_epochs):
+    def train(
+        self,
+        model,
+        model_name,
+        optimizer,
+        data_loader,
+        eval_data_loader,
+        device,
+        num_epochs,
+    ):
         start_training_timestamp = get_current_timestamp()
         best_metric_score = None
         for epoch in range(0, num_epochs):
-            self.train_one_epoch(model,
-                                 optimizer,
-                                 data_loader,
-                                 device,
-                                 epoch)
+            self.train_one_epoch(model, optimizer, data_loader, device, epoch)
             self.lr_scheduler.step()
             evaluator = self.evaluate(model, eval_data_loader, device)
             metric_score = evaluator.get_evaluation_metrics()
             if best_metric_score is None or metric_score > best_metric_score:
                 best_metric_score = metric_score
+                best_model_name = f"{model_name}_{epoch}.pth"
+                models_path = os.path.join(
+                    model_name, start_training_timestamp, "best_model"
+                )
+                best_model_meta_data = {
+                    "metric": "mean_precision",
+                    "score": metric_score,
+                    "model_name": best_model_name,
+                    "models_path": models_path,
+                }
                 self.model_store.save_model(
                     model=model,
-                    model_name=f'{model_name}_{epoch}.pth',
-                    meta_data={'metric': 'mean_precision',
-                               },
-                    prefix=os.path.join(model_name, start_training_timestamp, 'best_model')
+                    model_name=best_model_name,
+                    meta_data=best_model_meta_data,
+                    prefix=models_path,
                 )
+        return best_model_meta_data
 
-    def train_one_epoch(self, model, optimizer, data_loader, device, epoch, print_freq=10):
-        return train_one_epoch(model, optimizer, data_loader, device, epoch, print_freq=print_freq)
+    def train_one_epoch(
+        self, model, optimizer, data_loader, device, epoch, print_freq=10
+    ):
+        return train_one_epoch(
+            model, optimizer, data_loader, device, epoch, print_freq=print_freq
+        )
 
     def evaluate(self, model, data_loader, device):
         return evaluate(model, data_loader, device)

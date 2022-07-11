@@ -1,12 +1,32 @@
 import os
 from pathlib import Path
+from io import BytesIO
 
+import PIL.PngImagePlugin
+import boto3
+import requests
 from PIL import Image
 import torch
 import numpy as np
+from botocore.exceptions import ClientError
 
 
-class LocalImagesRepo:
+def get_remote_image(url):
+    req = requests.get(url)
+    image = Image.open(BytesIO(req.content))
+
+    return image
+
+
+class ImagesRepo:
+    def get_image(self, name):
+        raise NotImplemented
+
+    def list_image_names(self, sort_func=sorted, sort_kwrags=None):
+        raise NotImplemented
+
+
+class LocalImagesRepo(ImagesRepo):
     def __init__(self, base_path):
         self.base_path = Path(base_path)
 
@@ -22,8 +42,81 @@ class LocalImagesRepo:
         return sorted_names
 
 
-class CocoLabelsRepo:
-    def get_label_from_mask(self, mask, idx):
+class S3ImagesRepo:
+    def __init__(self, bucket, base_path=None, region="us-east-2"):
+        self.bucket = bucket
+        self.region = region
+        self.base_path = base_path or ""
+        if not self.base_path.endswith("/"):
+            self.base_path = self.base_path + "/"
+
+    def get_image(self, name):
+        client = boto3.client("s3")
+        obj = client.get_object(
+            Bucket=self.bucket, Key=os.path.join(self.base_path, name)
+        )
+
+        image = Image.open(obj["Body"])
+        return image
+
+    def list_image_names(self, sort_func=sorted, sort_kwrags=None):
+        client = boto3.client("s3")
+        continuation_token = ""
+        paths = []
+        while continuation_token is not None:
+            if not continuation_token:
+                response = client.list_objects_v2(
+                    Bucket=self.bucket,
+                    Prefix=self.base_path,
+                )
+            else:
+                response = client.list_objects_v2(
+                    Bucket=self.bucket,
+                    Prefix=self.base_path,
+                    ContinuationToken=continuation_token,
+                )
+            if "NextContinuationToken" not in response:
+                continuation_token = None
+            else:
+                continuation_token = response["NextContinuationToken"]
+            contents = [
+                os.path.basename(obj["Key"])
+                for obj in response["Contents"]
+                if obj["Key"] != self.base_path
+            ]
+            paths.extend(contents)
+        if sort_func is not None:
+            sort_kwrags = sort_kwrags or {}
+            paths = sort_func(paths, **sort_kwrags)
+
+        return paths
+
+    def get_image_url(self, name):
+        base_url = f"https://{self.bucket}.s3.{self.region}.amazonaws.com/"
+        client = boto3.client("s3")
+        try:
+            obj = client.head_object(
+                Bucket=self.bucket, Key=os.path.join(self.base_path, name)
+            )
+        except ClientError as exc:
+            if exc.response["Error"]["Code"] != "404":
+                return None
+            raise exc
+        url = os.path.join(base_url, self.base_path, name)
+        return url
+
+
+class LabelsRepo:
+    def get_label(self, name):
+        raise NotImplemented
+
+
+class CocoLabelsRepo(LabelsRepo):
+    def __init__(self, masks_repo: ImagesRepo):
+        self.masks_repo = masks_repo
+
+    def get_label(self, name, idx):
+        mask = self.masks_repo.get_image(name)
         # instances are encoded as different colors
         obj_ids = np.unique(mask)
         # first id is the background, so remove it
@@ -66,3 +159,7 @@ class CocoLabelsRepo:
 
         return label
 
+
+class LabelboxLabelsRepo(LabelsRepo):
+    def __init__(self, project_id):
+        self.project_id = project_id

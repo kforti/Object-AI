@@ -1,8 +1,12 @@
+import os
 from pathlib import Path
 
-
-PACKAGE_ROOT = Path(__file__).parent.parent
-REPO_ROOT = PACKAGE_ROOT.parent
+REPO_ROOT = os.environ.get('OBJECT_AI_REPO_PATH')
+if REPO_ROOT is not None:
+    REPO_ROOT = Path(REPO_ROOT)
+else:
+    REPO_ROOT = Path(__file__).parent.parent.parent
+PACKAGE_ROOT = REPO_ROOT.joinpath('object_ai')
 
 DATA_PATH = PACKAGE_ROOT.joinpath("data")
 MODELS_PATH = DATA_PATH.joinpath("models")

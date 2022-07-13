@@ -123,3 +123,37 @@ def create_labelbox_bucket_policy(bucket_name):
         logging.error(e)
         return None
     return response
+
+
+def create_cognito_policy(bucket_name, app_name):
+    policy = {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Sid": "ListYourObjects",
+                "Effect": "Allow",
+                "Action": "s3:ListBucket",
+                "Resource": [f"arn:aws:s3:::{bucket_name}"],
+                "Condition": {
+                    "StringLike": {
+                        "s3:prefix": [f"cognito/{app_name}/${{cognito-identity.amazonaws.com:sub}}"]
+                    }
+                }
+            },
+            {
+                "Sid": "ReadWriteDeleteYourObjects",
+                "Effect": "Allow",
+                "Action": [
+                    "s3:GetObject",
+                    "s3:PutObject",
+                    "s3:DeleteObject"
+                ],
+                "Resource": [
+                    f"arn:aws:s3:::{bucket_name}/cognito/{app_name}/${{cognito-identity.amazonaws.com:sub}}",
+                    f"arn:aws:s3:::{bucket_name}/cognito/{app_name}/${{cognito-identity.amazonaws.com:sub}}/*"
+                ]
+            }
+        ]
+    }
+
+    return policy

@@ -5,3 +5,8 @@ env/
 
 .terraform/
 **/.terraform.lock.hcl
+# Elastic Beanstalk Files
+.elasticbeanstalk/*
+!.elasticbeanstalk/*.cfg.yml
+!.elasticbeanstalk/*.global.yml
+.ebextensions/

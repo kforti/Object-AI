@@ -1,0 +1,6 @@
+services:
+  web:
+    image: kfortier/objective-ai:a572aa0943d73ff052dcd763154455457992a669
+    ports:
+    - 8080:8080
+version: '3.9'

@@ -51,8 +51,8 @@ function InitializeApp(user) {
   }
 
   return (
-    <div class="container">
-      <div class="d-flex justify-content-center">  
+    <div className="container">
+      <div className="d-flex justify-content-center">  
         <button onClick={handleClick}>Initialize Account</button>
       </div>
     </div>

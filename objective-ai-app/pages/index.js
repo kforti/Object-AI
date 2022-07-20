@@ -10,11 +10,15 @@ import styles from '../styles/Home.module.css'
 import awsExports from '../src/aws-exports';
 Amplify.configure(awsExports);
 
+const BASE_URL = "http://localhost:5005/v0"
 
-// Auth.currentAuthenticatedUser({
-//     bypassCache: false  // Optional, By default is false. If set to true, this call will send a request to Cognito to get the latest user data
-// }).then(user => console.log(JSON.stringify(user, null, 4)))
-// .catch(err => console.log(err));
+// Auth.currentSession().then(res=>{
+//   let accessToken = res.getAccessToken()
+//   let jwt = accessToken.getJwtToken()
+//   //You can print them to see the full objects
+//   console.log(`myAccessToken: ${JSON.stringify(accessToken)}`)
+//   console.log(`myJwt: ${jwt}`)
+// })
 
 function Home(signOut, user) {
   // const str = JSON.stringify(user, null, 4); // (Optional) beautiful indented output.
@@ -85,34 +89,31 @@ function Home(signOut, user) {
 }
 
 
-function InitializeApp(user) {
-  function handleClick(event){
-   console.log() 
-  }
-
-  return (
-    <div className="container">
-      <div className="d-flex justify-content-center">  
-        <button onClick={handleClick}>Initialize Account</button>
-      </div>
-    </div>
-    );
-}
-
-
-const WorkspaceMain = ({workspace}) => {
-  console.log(workspace.labelbox_aws_account)
+const WorkspaceMain = ({workspace, updateWorkspace}) => {
+  const [editAWSAccount, setEditAWSAccount] = useState(false);
+  const [AWSAccount, setAWSAccount] = useState(workspace.labelbox_aws_account);
+  const [editExternalID, setEditExternalID] = useState(false);
+  const [externalID, setexternalID] = useState(workspace.labelbox_external_id);
+  useEffect(() => {
+    console.log('workspace main')
+    console.log(editAWSAccount)
+    console.log(editAWSAccount)
+  })
   return (
     <div className="container-fluid">
       <h2>Workspace</h2>
 
       <div className="container-fluid">
+        <h3>Integrations</h3>
       <div className="row mt-3">
           <div className="col-md-auto">
             <label htmlFor="exampleFormControlInput1" className="form-label">Labelbox AWS Account</label>               
           </div>
           <div className="col-md-auto">
-            <input type="email" className="form-control" id="exampleFormControlInput1" value={workspace.labelbox_aws_account} readOnly={false}/>
+            <input type="text" className="form-control" id="exampleFormControlInput1" defaultValue={AWSAccount} readOnly={!editAWSAccount} onChange={(e) => {setAWSAccount(e.target.value)}}/>
+          </div>
+          <div className="col-md-auto">
+            <button className='btn btn-primary' onClick={() => setEditAWSAccount(!editAWSAccount)}>Edit</button>
           </div>
         </div>
       
@@ -121,10 +122,23 @@ const WorkspaceMain = ({workspace}) => {
             <label htmlFor="exampleFormControlInput1" className="form-label">Labelbox External ID</label>          
           </div>
           <div className="col-md-auto">
-            <input type="email" className="form-control" id="exampleFormControlInput1" value={workspace.labelbox_external_id} readOnly={false}/>
+            <input type="text" className="form-control" id="exampleFormControlInput1" defaultValue={externalID} readOnly={!editExternalID} onChange={(e) => {setexternalID(e.target.value)}}/>
+          </div>
+          <div className="col-md-auto">
+            <button className='btn btn-primary' onClick={() => setEditExternalID(!editExternalID)}>Edit</button>
           </div>
         </div>
-
+        
+        <div className="row mt-3">
+          <div className="col-md-auto">
+            <button className='btn btn-primary' onClick={() => {
+              workspace.labelbox_aws_account = AWSAccount
+              workspace.labelbox_external_id = externalID
+              updateWorkspace(workspace)
+              }} >Update Labelbox Integration</button>
+          </div>
+        </div>
+        
         <div className="row mt-3">
           <div className="col-md-auto">
             <h3>Start Labeling</h3>
@@ -232,17 +246,8 @@ const Models = () => {
 }
 
 
-const WorkspaceUI = ({workspace}) => {
-  console.log(workspace)
-  return (
-    <div>
-      <PrimaryNav workspace={workspace}/>
-    </div>
-  )
-}
-
-
-const PrimaryNav = ({workspace}) =>{
+const PrimaryNav = ({workspace, updateWorkspace}) =>{
+  console.log('primary nav')
   return (
     <div className="container">
     <ul className="nav nav-pills mb-3" id="pills-tab" role="tablist">
@@ -262,7 +267,7 @@ const PrimaryNav = ({workspace}) =>{
 
     <div className="tab-content" id="pills-tabContent">
       <div className="tab-pane fade show active" id="pills-home" role="tabpanel" aria-labelledby="pills-home-tab" tabIndex="0">
-        <WorkspaceMain workspace={workspace}/>
+        <WorkspaceMain workspace={workspace} updateWorkspace={updateWorkspace}/>
       </div>
       <div className="tab-pane fade" id="pills-profile" role="tabpanel" aria-labelledby="pills-profile-tab" tabIndex="0">
         <Datasets workspace={workspace}/>
@@ -287,26 +292,108 @@ const MockWorkspaces = [
 }]
 
 
-const WorkspacesStarter = (user) => {
-  const [workspaces, setWorkspaces] = useState([]);
+const WorkspacesStarter = () => {
+  const [workspaces, setWorkspaces] = useState(null);
   const [initialized, setInitialized] = useState(false);
+  const [updatedWorkspace, setUpdatedWorkspace] = useState(null);
   useEffect(() => {
-    if (!initialized) {
-      console.log('initializing Workspace')
-      setTimeout(() => {
-        setWorkspaces(MockWorkspaces)
-        setInitialized(true)
-      
-      }, 5000)
+    console.log(workspaces)
+    console.log(initialized)
+    if (workspaces == null) {
+      getWorkspaces()
+    .then((myJson) => {
+      console.log(myJson);
+      setWorkspaces(myJson);
+    })
     }
-  }
+    else if (workspaces.length == 0) {
+      createWorkspace()
+      .then(data => setWorkspaces(null))
+      console.log('creating workspace')
+    }
+    else if (workspaces.length > 0 && !initialized) {
+      setInitialized(true);
+    }
+  }, [workspaces, initialized]
   );
+
+  useEffect(() => {
+    if (updatedWorkspace != null){
+      updateWorkspace(updatedWorkspace)
+      .then((res) => {
+        setUpdatedWorkspace(null)
+        setWorkspaces(null)
+      })
+    }
+  }, [updatedWorkspace])
+
+  function createWorkspace() {
+    return Auth.currentSession()
+    .then(res=>{
+      let accessToken = res.getAccessToken()
+      let jwt = accessToken.getJwtToken()
+      return jwt
+    })
+    .then(res=>{
+      return fetch(`${BASE_URL}/api/workspaces`, {
+              method: 'post',
+              body: {},
+              headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${res}`,
+              'Access-Control-Allow-Origin': '*'}
+            })
+    })
+    .then(data => data.json())
+  }
+
+  function getWorkspaces() {
+    
+    return Auth.currentSession()
+    .then(res=>{
+      let accessToken = res.getAccessToken()
+      let jwt = accessToken.getJwtToken()
+      return jwt
+    })
+    .then(res=>{
+      return fetch(`${BASE_URL}/api/workspaces`, {
+              headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${res}`,
+              'Access-Control-Allow-Origin': '*'}
+            })
+    })
+    .then(data => data.json())
+  }
+
+  function updateWorkspace(workspace) {
+    return Auth.currentSession()
+    .then(res=>{
+      let accessToken = res.getAccessToken()
+      let jwt = accessToken.getJwtToken()
+      return jwt
+    })
+    .then(res=>{
+      return fetch(`${BASE_URL}/api/workspaces`, {
+              method: 'put',
+              body: JSON.stringify(workspace),
+              headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${res}`,
+              'Access-Control-Allow-Origin': '*'}
+            })
+    })
+    .then(data => data.json())
+  }
+
   console.log(initialized)
   return (
     <div>
-      {initialized  
+      {initialized && workspaces != null 
       // The workspace is hard coded, i.e, we take the first one
-      ? <WorkspaceUI workspace={workspaces[0]}/>
+      ? <div>
+          <PrimaryNav workspace={workspaces[0]} updateWorkspace={setUpdatedWorkspace}/>
+        </div>
       : <div>
           <div className="spinner-border text-primary" role="status">
           </div>

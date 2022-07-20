@@ -1,6 +1,6 @@
 services:
   web:
-    image: kfortier/objective-ai:a572aa0943d73ff052dcd763154455457992a669
+    image: kfortier/objective-ai:bd6be4effa775f692d7585629fb1b43cd4c282c6
     ports:
-    - 8080:8080
+    - 80:5000
 version: '3.9'

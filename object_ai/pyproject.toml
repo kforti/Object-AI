@@ -25,6 +25,7 @@ imagesize = "^1.4.1"
 black = "^22.6.0"
 Flask-Cognito = "^1.18"
 Flask-SQLAlchemy = "^2.5.1"
+Flask-Cors = "^3.0.10"
 
 [tool.poetry.dev-dependencies]
 pytest = "^3.4"
